@@ -1,0 +1,4 @@
+{
+	"name":"pg-profiler",
+	"main":"./index.js"
+}

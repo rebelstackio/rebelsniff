@@ -1,0 +1,55 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# https://www.postgresql.org/docs/9.3/static/libpq-envars.html
+INFLUXPORT="8086"
+INFLUXUSER="super"
+INFLUXPASSWORD="superduper"
+INFLUXDATABASE="lightyear_dev"
+NODE_VER="8.x"
+
+# server vars
+HOSTNAME = "logger"
+FQDN = HOSTNAME + ".rebelsniff"
+#server_cpus   = "1"   # Cores
+SERVER_MEMORY = "512" # MB Normally 512MB, raise this to 2048 to compile plv8
+SERVER_SWAP   = "1024" # Options: false | int (MB) -
+                      # Guideline: Between one or two times the server_memory
+
+                      #Allow us to run both projects in one vagrant by supplying the path to the client repo
+start_mode = "demo"
+start_mode = ENV['MODE']
+
+$script = <<SCRIPT
+echo I am provisioning...
+date > /etc/vagrant_provisioned_at
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/trusty64"
+  config.vm.hostname = HOSTNAME
+  config.vm.network "private_network", ip: GUEST_IP
+  config.vm.network "forwarded_port", guest: 8888, host: INFLUXPORT
+
+  config.vm.provider "virtualbox" do |v|
+    v.memory = SERVER_MEMORY
+    v.customize ["modifyvm", :id, "--memory", SERVER_MEMORY]
+  end
+  config.vm.provision "shell", inline: $script
+  config.vm.synced_folder "../", "/home/vagrant/rebelsniff", create:true,
+    :mount_options => ['dmode=775', 'fmode=777']
+
+  config.vm.provision :shell do |s|
+    s.path = "/home/vagrant/bootstrap.sh"
+    s.env = {
+      "FQDN" => FQDN,
+      "INFLUXPORT" => INFLUXPORT,
+      "INFLUXUSER" => INFLUXUSER,
+      "INFLUXPASSWORD" => INFLUXPASSWORD,
+      "INFLUXDATABASE" => INFLUXDATABASE,
+      "INFLUXVERSION" => INFLUXVERSION,
+      "NODE_VER" => NODE_VER
+    }
+  end
+
+end
